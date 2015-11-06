@@ -59,6 +59,9 @@ class Transaction
 end
 
 class BalanceTransaction < Transaction
+  def update_view(view)
+    LOCView.new(view.balance + @amount, view.interest, @day)
+  end
 end
 
 class InterestTransaction < Transaction
