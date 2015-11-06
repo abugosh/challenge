@@ -1,5 +1,8 @@
 #! /usr/bin/env ruby
 
+class InsufficentCreditError < StandardError
+end
+
 class LineOfCredit
   attr_reader :apr, :credit_limit, :interest_total, :balance
 
@@ -14,5 +17,11 @@ class LineOfCredit
 
     @interest_total = 0.0
     @balance = 0
+  end
+
+  def withdraw(amount)
+    raise ArgumentError, "cannot withdraw negative amounts" if amount < 0
+    raise InsufficentCreditError, "withdrawal too large" if (amount + @balance) > @credit_limit
+    @balance += amount
   end
 end

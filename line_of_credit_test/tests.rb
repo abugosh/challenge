@@ -39,4 +39,38 @@ RSpec.describe LineOfCredit do
       end
     end
   end
+
+  context "#withdraw" do
+    let(:loc) { LineOfCredit.new(1000, 0.35) }
+
+    it "should let a user withdraw money and update the balance" do
+      expect(loc.balance).to eq(0)
+
+      loc.withdraw(500)
+
+      expect(loc.balance).to eq(500)
+
+      loc.withdraw(250)
+
+      expect(loc.balance).to eq(750)
+    end
+
+    it "should not let a user withdraw more than the credit_limit" do
+      expect{ loc.withdraw(5000000) }.to raise_error(InsufficentCreditError)
+    end
+
+    it "should not let the user withdraw when (balance + withdrawl) > credit_limit" do
+      expect(loc.balance).to eq(0)
+
+      loc.withdraw(500)
+
+      expect(loc.balance).to eq(500)
+
+      expect{ loc.withdraw(550) }.to raise_error(InsufficentCreditError)
+    end
+
+    it "should not let the user withdraw a negative number" do
+      expect{ loc.withdraw(-500) }.to raise_error(ArgumentError)
+    end
+  end
 end
