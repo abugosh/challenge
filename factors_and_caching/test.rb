@@ -11,4 +11,13 @@ RSpec.describe "the factoring method" do
 
     expect(factor(numbers).keys).to eq(numbers)
   end
+
+  it "should give empty factor arrays for prime factors" do
+    numbers = [2,3,5,7,11,13]
+    factored = factor(numbers)
+
+    numbers.each do |num|
+      expect(factored[num]).to eq([])
+    end
+  end
 end
