@@ -28,4 +28,15 @@ RSpec.describe "the factoring method" do
     expect(factored[2]).to eq([])
     expect(factored[4]).to eq([2])
   end
+
+  it "should handle the case of a few primes and a few factorables" do
+    numbers = [2, 3, 4, 6, 9]
+    factored = factor(numbers)
+
+    expect(factored[2]).to eq([])
+    expect(factored[3]).to eq([])
+    expect(factored[4]).to eq([2])
+    expect(factored[6]).to eq([2, 3])
+    expect(factored[9]).to eq([3])
+  end
 end
