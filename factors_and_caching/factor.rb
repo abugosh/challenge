@@ -4,7 +4,7 @@ def factor(factors)
   out = {}
 
   factors.each do |num|
-    out[num] = nil
+    out[num] = []
   end
 
   out
