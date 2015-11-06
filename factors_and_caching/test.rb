@@ -39,4 +39,11 @@ RSpec.describe "the factoring method" do
     expect(factored[6]).to eq([2, 3])
     expect(factored[9]).to eq([3])
   end
+
+  it "should handle the sample case" do
+    numbers = [10, 5, 2, 20]
+    factored = factor(numbers)
+
+    expect(factored).to eq({10 =>  [5, 2], 5 => [], 2 =>  [], 20 => [10,5,2]})
+  end
 end
