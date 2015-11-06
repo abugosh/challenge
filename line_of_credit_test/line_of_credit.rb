@@ -34,3 +34,33 @@ class LineOfCredit
     @balance -= amount
   end
 end
+
+class LOCView
+  attr_reader :balance, :interest, :day
+
+  def initialize(balance, interest, day)
+    @balance = balance
+    @interest = interest
+    @day = day
+  end
+end
+
+class Transaction
+  attr_reader :amount, :day
+
+  def initialize(amount, day)
+    @day = day
+    @amount = amount
+  end
+
+  def update_view(view)
+    raise NotImplementedError, "update_view not implemented"
+  end
+end
+
+class BalanceTransaction < Transaction
+end
+
+class InterestTransaction < Transaction
+end
+
