@@ -3,6 +3,9 @@
 class InsufficentCreditError < StandardError
 end
 
+class InsufficentBalanceError < StandardError
+end
+
 class LineOfCredit
   attr_reader :apr, :credit_limit, :interest_total, :balance
 
@@ -23,5 +26,11 @@ class LineOfCredit
     raise ArgumentError, "cannot withdraw negative amounts" if amount < 0
     raise InsufficentCreditError, "withdrawal too large" if (amount + @balance) > @credit_limit
     @balance += amount
+  end
+
+  def pay(amount)
+    raise ArgumentError, "cannot pay negative amounts" if amount < 0
+    raise InsufficentBalanceError, "payment too large" if (@balance - amount) < 0
+    @balance -= amount
   end
 end

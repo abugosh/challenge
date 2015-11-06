@@ -73,4 +73,29 @@ RSpec.describe LineOfCredit do
       expect{ loc.withdraw(-500) }.to raise_error(ArgumentError)
     end
   end
+
+  context "#pay" do
+    let(:loc) {
+      line = LineOfCredit.new(1000, 0.35)
+      line.withdraw(500)
+      line
+    }
+
+    it "should let the user pay down a balance" do
+      expect(loc.balance).to eq(500)
+
+      loc.pay(400)
+
+      expect(loc.balance).to eq(100)
+    end
+
+    # This test will get changed to support interest later
+    it "should not let the user make a payment more than balance" do
+      expect{ loc.pay(600) }.to raise_error(InsufficentBalanceError)
+    end
+
+    it "should not let the user make a negative payment" do
+      expect{ loc.pay(-500) }.to raise_error(ArgumentError)
+    end
+  end
 end
