@@ -44,6 +44,6 @@ RSpec.describe "the factoring method" do
     numbers = [10, 5, 2, 20]
     factored = factor(numbers)
 
-    expect(factored).to eq({10 =>  [5, 2], 5 => [], 2 =>  [], 20 => [10,5,2]})
+    expect(factored).to eq({10 => [2, 5], 5 => [], 2 =>  [], 20 => [2,5,10]})
   end
 end
