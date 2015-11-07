@@ -1,4 +1,12 @@
-Create a ruby implementation of the following:
+The test instruction assumes you are running RVM.
+
+In order to run the tests run the following commands:
+
+1. gem install bundler
+2. bundle
+3. rspec
+
+Create an implementation of the following:
 
 A line of credit product.  This is like a credit card except theres no card.
 It should work like this:

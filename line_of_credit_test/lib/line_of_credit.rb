@@ -18,6 +18,7 @@ module LineOfCredit
   # We made some assuptions with this class:
   #
   # * Transactions are going to come in order (reject transactions that come before the latest)
+  # * We represent money as Floats, it should be changed to a Money class
   # * We don't use dates (yet!), just day counts from account opening
   # * Statement periods do not close automatically (yet!)
   # * APRs and credit limits don't change
