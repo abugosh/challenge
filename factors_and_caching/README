@@ -101,17 +101,84 @@ Depending on usage we could easily implement one of these strategies for dealing
 
 # TrieCache
 
+It is possible to compose a cache based on a data structure called a Trie (https://en.wikipedia.org/wiki/Trie). This is because of an attribute of the problem once the input data is sorted.
+
+factorize([2, 4]) => {2: [], 4: [2]}
+factorize([2, 4, 8]) => factorize([2, 4]) + {8: [2, 4]}
+factorize([2, 4, 9]) => factorize([2, 4]) + {9: []}
+
+As you walk through a sorted array in this problem larger numbers never affect the solution for smaller numbers.
+
+Each node in the TrieCache would contain two elements:
+
+factor_data # This would be like the {8: [2,4]} in the previous example
+next_numbers # This would be pointers to nodes for 8 and 9 in the previous example
+
+next_numbers would not be shared between different arms in the tree.
+
+Pros:
+* This cache could provide useful output for the use of solving future factorization problems
+* Pruning strategies can be highly effective because of building on the sub problem solving aspect
+* It should be more efficient in disk space usage than than a hash table
+* You get to implement a Trie!
+
+Cons:
+* Highly disparate datasets will involve long node walks to no advantage
+* Your lookup time will be O(n) instead of a hash function O(1) (depending on hashing algorithim and collisions)
+* If your disk(s) are slow then this will be very slow due to lots of disk accesses.
+
+The Design:
+
+class TrieNode
+  # It should allocate some space on the heap for its instance data (number, factors) and space for future node references
+  def initialize(number, factors, data_heap)
+
+  # It should pop itself off the key (key should be a sorted array of numbers) and solution (hash of numbers to factors) (based on the node's number)
+  # If it already contains the number in its next_numbers hash it should call add_node with the key and solution
+  # If it doesn't then it should initialize a new node and store the reference, then it should call add_node with the key and solution
+  def add_node(key, solution)
+
+  # It should pop itself off the key and add its number entry to the solution
+  # If it has a refence to the next number in its next_numbers hash, it should call find with the key and solution
+  # If it doesn't have a reference it should return the partial solution, key combination
+  # If key is empty, it should return the solution
+  def find(key, solution)
+end
+
+Caching strategies (or how do we get rid of the extra data):
+
+Depending on usage we could easily implement one of these strategies for dealing with too much data, depending on our usage patterns.
+
+1. We could add a counter to each node that is increamented each access. If we want to prune the tree we could drop all nodes with low access counts. This along with utilizing partial solutions in future calcuations would provide a significant improvement in calcuation time even in the case of cache misses.
+2. Along the same lines we could just drop all nodes past a certain length.
+
+####
+
 2.  What is the performance of your caching implementation?  Is there any way to make it more performant.
 
 # HashCache
 
-The worst case is that all of the keys hash to the same value and you end up just searching an array O(n)
+The worst case is that all of the keys hash to the same value and you end up just searching an array O(n) (n in this case being hash entry count)
 
 Assuming few conflicts, lookup and allocation could be as fast as O(1).
 
 The performance challenges with this solution end up involving the large files that are needed to store the hash table (with few conflicts) and the Heap. Disk accesses will be fairly random which will not help performance. SSDs will go a long way to make this solution faster.
 
 One other thing that will speed access is to place the Heap and HashTable on different disks (especially in the case of spinning disks since the table and heap will both be accessing somewhat randomly).
+
+# TrieCache
+
+We will need to walk the entire array in every lookup. For long arrays this could involve many disk accesses which could be very expensive. The node structure will consume extra disk space, we will save space over a hashtable if we have many entries that share common roots.
+
+To improve performance we could roll up long non-branching parts of the tree into single nodes. We could also keep track of multiple root nodes with different prefixes if we saw them often (a cache for the cache!) (data access patterns determine optimizations).
+
+SSDs and RAM disks would provide huge value in making the random disk accesses fast.
+
+For extremely long and large datasets you could create nodes that would move a particular find command over to a different server (this server has all the solutions for arrays that start with [2,3,5]).
+
+Depending on performance needs, you could have search agents walk the tree together until they diverge, saving on disk access calls.
+
+####
 
 3.  What if you wanted to reverse the functionality.  What if you wanted to output each integer and all the other integers in the
 array that is the first integer is a factor of I.E:
@@ -125,4 +192,7 @@ Would this change your caching algorithim?
 
 The hashtable wouldn't need any changes. The check function for the data lists to the keys is based on the array entries being keys in the data hashes.
 
+# TrieCache
+
+It would not require any changes. You would sort the array in the opposite direction on input.
 
