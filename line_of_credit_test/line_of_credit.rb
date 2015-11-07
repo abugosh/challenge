@@ -6,6 +6,9 @@ end
 class InsufficentBalanceError < StandardError
 end
 
+class ContinuityError < StandardError
+end
+
 class LineOfCredit
   attr_reader :apr, :credit_limit, :interest_total
 
@@ -29,21 +32,35 @@ class LineOfCredit
   end
 
   def balance
-    @transactions.reduce(LOCView.new(0, 0, 0)) do |view, trans|
-      trans.update_view(view)
-    end.balance
+    current_view.balance
   end
 
-  def withdraw(amount)
+  def current_day
+    current_view.day
+  end
+
+  def withdraw(amount, day)
     raise ArgumentError, "cannot withdraw negative amounts" if amount < 0
     raise InsufficentCreditError, "withdrawal too large" if (amount + balance) > @credit_limit
-    @transactions << BalanceTransaction.new(amount, 0)
+    raise ContinuityError, "withdrawal before current day" if day < current_day
+
+    @transactions << BalanceTransaction.new(amount, day)
   end
 
-  def pay(amount)
+  def pay(amount, day)
     raise ArgumentError, "cannot pay negative amounts" if amount < 0
     raise InsufficentBalanceError, "payment too large" if (balance - amount) < 0
-    @transactions << BalanceTransaction.new(-amount, 0)
+    raise ContinuityError, "withdrawal before current day" if day < current_day
+
+    @transactions << BalanceTransaction.new(-amount, day)
+  end
+
+  private
+
+  def current_view
+    @transactions.reduce(LOCView.new(0, 0, 0)) do |view, trans|
+      trans.update_view(view)
+    end
   end
 end
 
