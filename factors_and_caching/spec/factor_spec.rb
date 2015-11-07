@@ -46,4 +46,25 @@ RSpec.describe "the factoring method" do
 
     expect(factored).to eq({10 => [2, 5], 5 => [], 2 =>  [], 20 => [2,5,10]})
   end
+
+  it "should handle repeats" do
+    numbers = [2, 2, 2, 2, 4]
+
+    factored = factor(numbers)
+
+    expect(factored[2]).to eq([])
+    expect(factored[4]).to eq([2])
+  end
+
+  it "should error on negative numbers" do
+    numbers = [-2, 4]
+
+    expect{ factor(numbers) }.to raise_error(ArgumentError)
+  end
+
+  it "should error on a zero factor" do
+    numbers = [0, 4]
+
+    expect{ factor(numbers) }.to raise_error(ArgumentError)
+  end
 end
