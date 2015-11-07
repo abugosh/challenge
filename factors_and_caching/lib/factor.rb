@@ -1,5 +1,6 @@
 #! /usr/bin/env ruby
 
+# Takes an array of postive non-zero integers and returns a hash of where each number is a key to its factors from the input array
 def factor(factors)
   out = {}
   # Short circut the method if factors is empty
