@@ -130,6 +130,10 @@ module LineOfCredit
         loc.close_statement(60)
 
         expect(loc.interest_total).to be_within(0.01).of(14.38 * 2)
+
+        loc.close_statement(90)
+
+        expect(loc.interest_total).to be_within(0.01).of(14.38 * 3)
       end
 
       it "should not let you close a statement in the past" do

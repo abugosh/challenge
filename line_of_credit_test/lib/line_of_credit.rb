@@ -9,9 +9,18 @@ module LineOfCredit
   class InsufficentBalanceError < StandardError
   end
 
+  # Errors regarding trying to do things in the past
   class ContinuityError < StandardError
   end
 
+  # A model of a Line of Credit
+  #
+  # We made some assuptions with this class
+  #
+  # * Transactions are going to come in order (reject transactions that come before the latest)
+  # * We don't use dates (yet!), just day counts from account opening
+  # * Statement periods do not close automatically (yet!)
+  # * APRs and credit limits don't change
   class LineOfCredit
     attr_reader :apr, :credit_limit
 
@@ -24,10 +33,13 @@ module LineOfCredit
       raise ArgumentError, "apr must be positive" unless apr >= 0
       @apr = apr
 
-      @balance = 0
-
+      # For tracking which transaction opens the statement period
       @statement_open_index = 0
-      @statement_base_view = LOCView.new(0, 0, 0)
+
+      # For caching a view of the transaction log at the open of the statement period
+      @statement_open_view = LOCView.new(0, 0, 0)
+
+      # The transaction log is a lot easier to reason about if it is primed with an empty transaction
       @transactions = [BalanceTransaction.new(0, 0)]
     end
 
@@ -48,25 +60,24 @@ module LineOfCredit
     end
 
     def statement_open_day
-      return 0 unless @transactions[@statement_open_index]
-
       @transactions[@statement_open_index].day
     end
 
     def close_statement(day)
       raise ContinuityError, "statement closing before current day" if day < current_day
 
-      future_base_view = current_view
-
-      view = @transactions[(@statement_open_index + 1)..@transactions.length].reduce(@statement_base_view) do |acc, trans|
+      # Compute the interest from all the transactions in the statement period
+      view = @transactions[(@statement_open_index + 1)..@transactions.length].reduce(@statement_open_view) do |acc, trans|
         trans.compute_interest(acc, apr)
       end
 
+      # Use a fake transaction to get the last stretch of interest
       final_view = BalanceTransaction.new(0, day).compute_interest(view, apr)
 
-      @transactions << InterestTransaction.new(final_view.interest - future_base_view.interest, day)
+      # Now we append an InterestTransaction with the new interest (the interest calc to this point is cumulative)
+      @transactions << InterestTransaction.new(final_view.interest - current_view.interest, day)
 
-      @statement_base_view = future_base_view
+      @statement_open_view = current_view
       @statement_open_index = @transactions.length - 1
     end
 
@@ -89,7 +100,8 @@ module LineOfCredit
     private
 
     def current_view
-      @transactions.reduce(LOCView.new(0, 0, 0)) do |view, trans|
+      # Update the cached statement_open_view with the transactions from this statement period
+      @transactions[(@statement_open_index + 1)..@transactions.length].reduce(@statement_open_view) do |view, trans|
         trans.update_view(view)
       end
     end
