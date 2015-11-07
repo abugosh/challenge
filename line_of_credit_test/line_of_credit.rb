@@ -7,7 +7,7 @@ class InsufficentBalanceError < StandardError
 end
 
 class LineOfCredit
-  attr_reader :apr, :credit_limit, :interest_total, :balance
+  attr_reader :apr, :credit_limit, :interest_total
 
   def initialize(credit_limit, apr)
     raise TypeError, "credit_limit must be a Numeric" unless credit_limit.is_a? Numeric
@@ -20,18 +20,30 @@ class LineOfCredit
 
     @interest_total = 0.0
     @balance = 0
+
+    @transactions = []
+  end
+
+  def transaction_count
+    @transactions.length
+  end
+
+  def balance
+    @transactions.reduce(LOCView.new(0, 0, 0)) do |view, trans|
+      trans.update_view(view)
+    end.balance
   end
 
   def withdraw(amount)
     raise ArgumentError, "cannot withdraw negative amounts" if amount < 0
-    raise InsufficentCreditError, "withdrawal too large" if (amount + @balance) > @credit_limit
-    @balance += amount
+    raise InsufficentCreditError, "withdrawal too large" if (amount + balance) > @credit_limit
+    @transactions << BalanceTransaction.new(amount, 0)
   end
 
   def pay(amount)
     raise ArgumentError, "cannot pay negative amounts" if amount < 0
-    raise InsufficentBalanceError, "payment too large" if (@balance - amount) < 0
-    @balance -= amount
+    raise InsufficentBalanceError, "payment too large" if (balance - amount) < 0
+    @transactions << BalanceTransaction.new(-amount, 0)
   end
 end
 

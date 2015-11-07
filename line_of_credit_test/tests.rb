@@ -40,6 +40,27 @@ RSpec.describe LineOfCredit do
     end
   end
 
+  context "#transaction_count" do
+    let(:loc) { LineOfCredit.new(1000, 0.35) }
+
+    it "should start at zero" do
+      expect(loc.transaction_count).to eq(0)
+    end
+
+    it "should increase by 1 for a withdrawal" do
+      loc.withdraw(500)
+
+      expect(loc.transaction_count).to eq(1)
+    end
+
+    it "should increase by 1 for a pay" do
+      loc.withdraw(500)
+      loc.pay(200)
+
+      expect(loc.transaction_count).to eq(2)
+    end
+  end
+
   context "#withdraw" do
     let(:loc) { LineOfCredit.new(1000, 0.35) }
 
