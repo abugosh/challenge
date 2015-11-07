@@ -43,19 +43,25 @@ RSpec.describe LineOfCredit do
   context "#transaction_count" do
     let(:loc) { LineOfCredit.new(1000, 0.35) }
 
-    it "should start at zero" do
-      expect(loc.transaction_count).to eq(0)
+    it "should start at one" do
+      expect(loc.transaction_count).to eq(1)
     end
 
     it "should increase by 1 for a withdrawal" do
       loc.withdraw(500, 0)
 
-      expect(loc.transaction_count).to eq(1)
+      expect(loc.transaction_count).to eq(2)
     end
 
     it "should increase by 1 for a pay" do
       loc.withdraw(500, 0)
       loc.pay(200, 0)
+
+      expect(loc.transaction_count).to eq(3)
+    end
+
+    it "should increase by 1 for a close_statement" do
+      loc.close_statement(30)
 
       expect(loc.transaction_count).to eq(2)
     end
@@ -79,6 +85,56 @@ RSpec.describe LineOfCredit do
       loc.pay(200, 10)
 
       expect(loc.current_day).to eq(10)
+    end
+  end
+
+  context "#statement_open_day" do
+    let(:loc) { LineOfCredit.new(1000, 0.35) }
+
+    it "should start at zero" do
+      expect(loc.statement_open_day).to eq(0)
+    end
+
+    it "shouldn't be updated by transactions" do
+      loc.withdraw(500, 15)
+
+      expect(loc.statement_open_day).to eq(0)
+    end
+
+    it "should be updated by last close_statement" do
+      loc.close_statement(30)
+
+      expect(loc.statement_open_day).to eq(30)
+    end
+  end
+
+  context "#close_statement" do
+    let(:loc) { LineOfCredit.new(1000, 0.35) }
+
+    it "should add interest" do
+      loc.withdraw(500, 0)
+
+      loc.close_statement(30)
+
+      expect(loc.interest_total).to eq(14.38)
+    end
+
+    it "should work multiple times" do
+      loc.withdraw(500, 0)
+
+      loc.close_statement(30)
+
+      expect(loc.interest_total).to eq(14.38)
+
+      loc.close_statement(60)
+
+      expect(loc.interest_total).to be_within(0.01).of(14.38 * 2)
+    end
+
+    it "should not let you close a statement in the past" do
+      loc.withdraw(500, 35)
+
+      expect{ loc.close_statement(30) }.to raise_error(ContinuityError)
     end
   end
 
@@ -266,6 +322,50 @@ RSpec.describe BalanceTransaction do
 
       expect(updated.interest).to eq(view.interest)
       expect(started_updated.interest).to eq(started_view.interest)
+    end
+  end
+end
+
+RSpec.describe InterestTransaction do
+  context "#update_view" do
+    let(:trans) { InterestTransaction.new(100, 10) }
+    let(:neg_trans) { InterestTransaction.new(100, 10) }
+    let(:view) { LOCView.new(0, 0, 0) }
+    let(:started_view) { LOCView.new(400, 10, 3) }
+
+    it "should update the view with the transaction data" do
+      updated = trans.update_view(view)
+
+      expect(view.interest).to eq(0)
+      expect(view.day).to eq(0)
+      expect(updated.interest).to eq(trans.amount)
+      expect(updated.day).to eq(trans.day)
+    end
+
+    it "should update the view with the transaction data when its negative" do
+      updated = neg_trans.update_view(view)
+
+      expect(view.interest).to eq(0)
+      expect(view.day).to eq(0)
+      expect(updated.interest).to eq(neg_trans.amount)
+      expect(updated.day).to eq(neg_trans.day)
+    end
+
+    it "should increment the interest and set the day" do
+      updated = trans.update_view(started_view)
+
+      expect(started_view.interest).to eq(10)
+      expect(started_view.day).to eq(3)
+      expect(updated.interest).to eq(trans.amount + started_view.interest)
+      expect(updated.day).to eq(trans.day)
+    end
+
+    it "should not influence the balance" do
+      updated = trans.update_view(view)
+      started_updated = trans.update_view(started_view)
+
+      expect(updated.balance).to eq(view.balance)
+      expect(started_updated.balance).to eq(started_view.balance)
     end
   end
 end

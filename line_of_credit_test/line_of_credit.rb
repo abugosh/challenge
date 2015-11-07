@@ -10,7 +10,7 @@ class ContinuityError < StandardError
 end
 
 class LineOfCredit
-  attr_reader :apr, :credit_limit, :interest_total
+  attr_reader :apr, :credit_limit
 
   def initialize(credit_limit, apr)
     raise TypeError, "credit_limit must be a Numeric" unless credit_limit.is_a? Numeric
@@ -21,10 +21,11 @@ class LineOfCredit
     raise ArgumentError, "apr must be positive" unless apr >= 0
     @apr = apr
 
-    @interest_total = 0.0
     @balance = 0
 
-    @transactions = []
+    @statement_open_index = 0
+    @statement_base_view = LOCView.new(0, 0, 0)
+    @transactions = [BalanceTransaction.new(0, 0)]
   end
 
   def transaction_count
@@ -37,6 +38,33 @@ class LineOfCredit
 
   def current_day
     current_view.day
+  end
+
+  def interest_total
+    current_view.interest
+  end
+
+  def statement_open_day
+    return 0 unless @transactions[@statement_open_index]
+
+    @transactions[@statement_open_index].day
+  end
+
+  def close_statement(day)
+    raise ContinuityError, "statement closing before current day" if day < current_day
+
+    future_base_view = current_view
+
+    view = @transactions[(@statement_open_index + 1)..@transactions.length].reduce(@statement_base_view) do |acc, trans|
+      trans.compute_interest(acc, apr)
+    end
+
+    final_view = BalanceTransaction.new(0, day).compute_interest(view, apr)
+
+    @transactions << InterestTransaction.new(final_view.interest - future_base_view.interest, day)
+
+    @statement_base_view = future_base_view
+    @statement_open_index = @transactions.length - 1
   end
 
   def withdraw(amount, day)
@@ -69,7 +97,7 @@ class LOCView
 
   def initialize(balance, interest, day)
     @balance = balance
-    @interest = interest
+    @interest = interest.to_f
     @day = day
   end
 end
@@ -101,5 +129,8 @@ class BalanceTransaction < Transaction
 end
 
 class InterestTransaction < Transaction
+  def update_view(view)
+    LOCView.new(view.balance, view.interest + @amount, @day)
+  end
 end
 
