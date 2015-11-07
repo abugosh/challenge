@@ -3,7 +3,7 @@ Accomplish in a language of your choice:
 Input: Given an array of integers
 
 Output: In whatever representation you wish, output each integer in the array and all the other integers in the array that are
-factors of the first integer.  
+factors of the first integer.
 
 Example:
 
@@ -11,15 +11,109 @@ Example:
 
 {10: [5, 2], 5: [], 2: [], 20: [10,5,2]}
 
-Additional Questions: 
+Additional Questions:
 
 1.  What if you were to cache the calculation, for example in the file system.  What would an example implementation
 of the cache look like?  By cache I mean, given an array input, skip the calculation of the output if you have already
 calculated the output at least once already.
 
+Caching strategies are an inherantly application specific problem. The profile of how your application accesses the cache should determine the style of cache you should use.
+
+For example, a cache where the normal usage is for a small subset of the cache entries to be accessed frequently benefits most from techniques that keep those values in memory (probably in a hash table) or in a seperate frequently used cache. Incoming requests can be checked against that cache before checking in the larger (most likely) slower cache. A usage pattern where values are accessed uniformly would not benefit from this optimization and should instead focus on general lookup speed.
+
+I'm going to focus my designs on file system based solutions but they should also work in memory but with different pointer semantics.
+
+Both solutions are going to depend on having a file based heap allocator we'll call DataHeap.
+
+# DataHeap serves a file based heap allocator
+# It will keep track of what parts of the file have been allocated and what parts are still free. It'll add a little bit of overhead with headers but it'll pay for itself in being able to allocate more efficently.
+# The headers will act as a linked list which can be walked to find the free parts of the file.
+# Initially there will be one node in the list which contains the whole file.
+class DataHeap
+  # The allocator will create a file of this size to do its initial allocations
+  def initialize(file, size)
+
+  # The allocator will attempt to extend the size of the file
+  # An alternative implementation would be to add additional datafiles, turning the location pointer into a combination {file: file_ptr, location: file_location_ptr}
+  def extend(size)
+
+  # This will carve a new block out of the file.
+  # There are a number of algorithims for doing this but the simplest would involve giving each block allocation a short header which includes size, next block location, and allocation status (allocated, true or false)
+  # The allocation algorithim could walk the list of blocks until it finds the first one that is free and the data fits in and return a pointer to the data portion of the block to the user while also updating the header (and creating a new block in the chain if it took only a portion of the block)
+  # A more complicated algorithim would involve chunking by allocation size and potentially fixed sized blocks
+  def allocate(size)
+
+  # This would return a block to the free pool.
+  # The deallocater can use the location to find the header and change the block to unallocated. It could also look backwards and forwards in the block chain to determine if it can coalace the block into its neighbors
+  def delete(location)
+end
+
+The first caching solution will be a HashTable.
+
+# HashCache
+
+For HashCache we are going to go the straight forward route of just building a hashtable of the inputs.
+
+Assumptions:
+* We are going to sort the input arrays before hashing to cut down on repeats
+
+Pros:
+* It should have relatively fast lookup times since we will be able to use the hashing algorithim to find the data location in one step
+* The naieve implementation is straight forward
+
+Cons:
+* Disk space will be used inefficently
+* Resizing the cache will be an expensive operation, potentially impossible after a certain percentage of disk space used
+* The optimized implementation will require implementing a memory management strategy
+
+The Design:
+
+# This is a basic file based hashtable
+# We are going to treat the file as a giant array with fixed size buckets.
+# The buckets are going to contain pointers to locations in the DataHeap.
+# We are going to handle collisions by having each entry in the DataHeap be a List.
+class HashTable
+  # We will allocate a file of size and keep a reference to a DataHeap
+  def initialize(file, size, data_heap)
+
+  # Hash the key and find the location in the array
+  # Look to see what is at that location, if it is null then allocate enough space for the data off of the Heap and put the data there as a one element list
+  # If it is a pointer then get the data from the Heap location
+  # Check each item of the data (it'll be a list) to see if the data matches, if so do nothing and return
+  # If not append the data to the list and delete the location from the heap, allocate a new location on the Heap for the new data size and put the data there
+  def put(key, data)
+
+  # Hash the key and find the location in the array
+  # Look to see what is at that location, if it is null then return null
+  # If it is a pointer then get the data from the Heap location
+  # Check each item of the data (it'll be a list) to see if any of the data matches the key (check to see if the keys and array are equal), if so return that item
+  # If not return null
+  def get(key)
+end
+
+Caching strategies (or how do we get rid of the extra data):
+
+Depending on usage we could easily implement one of these strategies for dealing with too much data, depending on our usage patterns.
+
+1. If we have few frequently accessed keys and many infrequently accessed keys we can add an additional step to track usage. When the cache gets too full (at whatever threshold), we can walk the hash entries and delete all of the ones that are infrequently used.
+2. If we have a more uniform usage pattern (or we don't want to track usage), we can drop entries randomly once the cache gets too full. This could prove painful if we delete a computationally expensive key.
+3. We can delete entries based on a differant weighting mechanism, such as computational cost to regenerate (delete the easy stuff), or size (delete the big DataHeap entries).
+
+# TrieCache
+
 2.  What is the performance of your caching implementation?  Is there any way to make it more performant.
 
-3.  What if you wanted to reverse the functionality.  What if you wanted to output each integer and all the other integers in the 
+# HashCache
+
+The worst case is that all of the keys hash to the same value and you end up just searching an array O(n)
+
+Assuming few conflicts, lookup and allocation could be as fast as O(1).
+
+The performance challenges with this solution end up involving the large files that are needed to store the hash table (with few conflicts) and the Heap. Disk accesses will be fairly random which will not help performance. SSDs will go a long way to make this solution faster.
+
+One other thing that will speed access is to place the Heap and HashTable on different disks (especially in the case of spinning disks since the table and heap will both be accessing somewhat randomly).
+
+3.  What if you wanted to reverse the functionality.  What if you wanted to output each integer and all the other integers in the
 array that is the first integer is a factor of I.E:
 
 Given an array of [10, 5, 2, 20], the output would be:
@@ -27,5 +121,8 @@ Given an array of [10, 5, 2, 20], the output would be:
 
 Would this change your caching algorithim?
 
-With caching, the output should be the same except the calculations are not performed.
+# HashCache
+
+The hashtable wouldn't need any changes. The check function for the data lists to the keys is based on the array entries being keys in the data hashes.
+
 
