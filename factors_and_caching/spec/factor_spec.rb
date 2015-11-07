@@ -1,4 +1,4 @@
-require './factor.rb'
+require 'factor'
 
 RSpec.describe "the factoring method" do
 
