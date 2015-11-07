@@ -56,6 +56,13 @@ class Transaction
   def update_view(view)
     raise NotImplementedError, "update_view not implemented"
   end
+
+  def compute_interest(view, apr)
+    next_view = update_view(view)
+    interest = (view.balance * (apr / 365) * (next_view.day - view.day)).round(2)
+
+    LOCView.new(next_view.balance, next_view.interest + interest, next_view.day)
+  end
 end
 
 class BalanceTransaction < Transaction
