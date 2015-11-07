@@ -41,6 +41,31 @@ module LineOfCredit
       end
     end
 
+    context "#payoff_quote" do
+      let(:loc) { LineOfCredit.new(1000, 0.35) }
+
+      it "should start at zero" do
+        expect(loc.payoff_quote).to eq(0)
+      end
+
+      it "should be equal to the balance in a statement period" do
+        loc.withdraw(500, 0)
+
+        expect(loc.payoff_quote).to eq(500)
+
+        loc.pay(200, 10)
+
+        expect(loc.payoff_quote).to eq(300)
+      end
+
+      it "should add the interest if there is any" do
+        loc.withdraw(500, 0)
+        loc.close_statement(30)
+
+        expect(loc.payoff_quote).to eq(514.38)
+      end
+    end
+
     context "#transaction_count" do
       let(:loc) { LineOfCredit.new(1000, 0.35) }
 
@@ -196,6 +221,39 @@ module LineOfCredit
         loc.pay(400, 0)
 
         expect(loc.balance).to eq(100)
+      end
+
+      it "should pay off interest before principle" do
+        loc.close_statement(30)
+
+        expect(loc.interest_total).to eq(14.38)
+
+        loc.pay(414.38, 30)
+
+        expect(loc.interest_total).to eq(0)
+        expect(loc.balance).to eq(100)
+      end
+
+      it "should only pay off interest if the payment is small enough" do
+        loc.close_statement(30)
+
+        expect(loc.interest_total).to eq(14.38)
+
+        loc.pay(4.38, 30)
+
+        expect(loc.interest_total).to eq(10)
+        expect(loc.balance).to eq(500)
+      end
+
+      it "should pay off the full payoff_quote" do
+        loc.close_statement(30)
+
+        expect(loc.interest_total).to eq(14.38)
+
+        loc.pay(loc.payoff_quote, 30)
+
+        expect(loc.interest_total).to eq(0)
+        expect(loc.balance).to eq(0)
       end
 
       # This test will get changed to support interest later
